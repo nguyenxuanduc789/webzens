@@ -1,0 +1,42 @@
+{
+    "name": "server",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "engines": {
+        "node": "18.x"
+    },
+    "scripts": {
+        "start": "nodemon index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "bcryptjs": "^2.4.3",
+        "body-parser": "^1.20.2",
+        "consolidate": "^1.0.3",
+        "cookie-parser": "^1.4.6",
+        "cors": "^2.8.5",
+        "crypto-js": "^4.1.1",
+        "dotenv": "^16.3.1",
+        "ejs": "^3.1.9",
+        "express": "^4.18.2",
+        "gridfs-stream": "^1.1.1",
+        "jsonwebtoken": "^9.0.2",
+        "method-override": "^3.0.0",
+        "moment-timezone": "^0.5.44",
+        "mongoose": "^7.6.8",
+        "mongoose-delete": "^1.0.1",
+        "multer": "^1.4.5-lts.1",
+        "multer-gridfs-storage": "^5.0.2",
+        "paypal-rest-sdk": "^1.8.1",
+        "qrcode": "^1.5.3",
+        "schema": "^0.2.1"
+    },
+    "devDependencies": {
+        "handlebars-jest": "^1.0.0",
+        "nodemon": "^3.0.3"
+    }
+}

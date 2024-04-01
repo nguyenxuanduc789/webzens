@@ -1,0 +1,114 @@
+from flask import Flask, request, jsonify
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.impute import SimpleImputer  # Import the SimpleImputer
+import requests
+
+app = Flask(__name__)
+
+# Sample model initialization (replace with your actual model)
+df = pd.DataFrame()  # Initialize an empty DataFrame
+
+dt_clf = DecisionTreeClassifier()
+rf_clf = RandomForestClassifier()
+
+# Map from code to coffee type
+nameproduct_mapping_reverse = {0: "Product 1", 1: "Product 2", 2: "Product 3", 3: "Product 4"}
+
+# Function to fetch data from an external API
+def fetch_data_from_external_api(api_url):
+    response = requests.get(api_url)
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        print(f"Failed to fetch data from API. Status code: {response.status_code}")
+        return None
+external_api_url = 'http://192.168.1.153:3000/order/getproductuser'
+external_data = fetch_data_from_external_api(external_api_url)
+if external_data:
+    df = pd.DataFrame(external_data)
+
+    df["gender"] = df["gender"].astype("category").cat.codes
+    df["nameproduct"] = df["nameproduct"].astype("category").cat.codes
+
+
+    imputer = SimpleImputer(strategy='mean') 
+    df[['age']] = imputer.fit_transform(df[['age']])
+
+    X = df[["age", "gender"]]
+    y = df["nameproduct"]
+
+    dt_clf.fit(X, y)
+    rf_clf.fit(X, y)
+
+@app.route('/most_popular_coffee_preference', methods=['GET'])
+def most_popular_coffee_preference():
+    try:
+
+        preference_counts = df["nameproduct"].value_counts()
+
+   
+        top_preferences = [nameproduct_mapping_reverse[pref] for pref in preference_counts.head(2).index]
+
+        response = {'top_preferences': top_preferences}
+
+        return jsonify(response)
+
+    except Exception as e:
+        # Handle errors
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/predict_coffee_preference', methods=['POST'])
+def predict_coffee_preference():
+    try:
+        # Get data from the request
+        content = request.json
+        age = content['age']
+        gender = content['gender']
+
+        # Convert gender to numerical value
+        gender_code = 0 if gender.lower() == 'male' else 1
+
+        # Prepare input data for prediction
+        input_data = [[age, gender_code]]
+
+        # Make predictions using both models
+        dt_prediction = dt_clf.predict(input_data)[0]
+        rf_prediction = rf_clf.predict(input_data)[0]
+
+        # Choose the model with the highest probability
+        best_model_prediction = dt_prediction if dt_prediction >= rf_prediction else rf_prediction
+
+        # Get probability scores for each class
+        dt_probabilities = dt_clf.predict_proba(input_data)[0]
+        rf_probabilities = rf_clf.predict_proba(input_data)[0]
+
+        # Sort predictions by probability and get the top 3 coffee preferences
+        dt_top_3 = sorted(zip(dt_probabilities, range(len(dt_probabilities))), reverse=True)[:3]
+        rf_top_3 = sorted(zip(rf_probabilities, range(len(rf_probabilities))), reverse=True)[:3]
+
+        # Convert predictions to coffee types
+        dt_top_3_names = [nameproduct_mapping_reverse[prediction] for _, prediction in dt_top_3]
+        rf_top_3_names = [nameproduct_mapping_reverse[prediction] for _, prediction in rf_top_3]
+
+        # Prepare response
+        response = {
+            'dt_top_3': dt_top_3_names,
+            'rf_top_3': rf_top_3_names
+        }
+
+        # Introduce a fixbug response
+        response['fixbug'] = {'error': '4', 'message': '4'}
+
+        return jsonify(response)
+    except Exception as e:
+        # Handle errors
+        return jsonify({'error': str(e)}), 500
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='192.168.1.153', port=3001)
